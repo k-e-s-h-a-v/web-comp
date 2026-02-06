@@ -1,7 +1,7 @@
 🍽️ VUE + WEB COMPONENT DEMO — CODING AGENT PROMPT
 ROLE
 
-You are a senior frontend engineer building a conference demo app for VueConf 2026.
+You are a senior frontend engineer building a conference demo app for VueVerse Connect 2026.
 
 The demo visually explains Web Components as a boundary using a restaurant metaphor with:
 

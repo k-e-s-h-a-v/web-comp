@@ -1,202 +1,251 @@
-# 🍽️ VueConf 2026 - Web Components Demo
+# 🍽️ VueVerse Connect 2026 - Web Components Demo
 
-A conference demo application that visually explains Web Components as a boundary using a restaurant metaphor.
+A visual demo that explains Web Components using a restaurant metaphor. The **Restaurant (Vue)** owns state and business logic, while the **Customer Table (Web Component)** is a framework-agnostic component that communicates via events and properties.
 
-## 🎯 Concept
-
-This demo uses a **restaurant metaphor** to explain how Web Components work as boundaries:
-
-- **Restaurant (Vue)** = Host application that owns state and business logic
-- **Customer Table (Web Component)** = Independent component that expresses intent
-- **Waiter** = Visual representation of communication across the boundary
-
-### Key Teaching Points
-
-1. **Intent goes up, data comes down** - The customer requests a menu (event), the restaurant provides it (prop)
-2. **Loose coupling** - The customer never talks to the kitchen directly
-3. **Business logic in host** - Prices and calculations are owned by Vue, not the Web Component
-4. **Framework independence** - The Web Component works without Vue
+**Live Demo:** [https://k-e-s-h-a-v.github.io/web-comp/](https://k-e-s-h-a-v.github.io/web-comp/)
 
 ## 🚀 Quick Start
 
 ```bash
-# Install dependencies
 npm install
-
-# Start development server
 npm run dev
-
-# Build for production
-npm run build
-
-# Preview production build
-npm preview
 ```
 
-Visit `http://localhost:5173` to see the demo.
+Visit `http://localhost:5173`
 
-## 📁 Project Structure
+## 📦 Using the CustomerTable Component
 
-```
-src/
-├── main.js                    # Entry point
-├── App.vue                    # Restaurant (Vue host app)
-├── style.css                  # Global styles
-├── assets/                    # Background images
-│   ├── kitchen.jpg
-│   ├── table.jpg
-│   └── cashier.jpg
-└── web-components/
-    └── CustomerTable.js       # Web Component (framework-agnostic)
-```
+The `CustomerTable` is a **framework-agnostic Web Component** that works anywhere.
 
-## 🎭 Demo Flow
-
-### 1️⃣ Request Menu
-- Customer clicks "Request Menu"
-- Waiter moves: TABLE → KITCHEN
-- Restaurant sends menu as prop
-- Waiter returns with menu
-
-### 2️⃣ Place Order
-- Customer selects items and clicks "Place Order"
-- Waiter moves: TABLE → KITCHEN
-- Restaurant processes order
-- Waiter returns with confirmation
-
-### 3️⃣ Request Bill
-- Customer clicks "Request Bill"
-- Waiter moves: TABLE → CASHIER
-- Restaurant calculates bill (owns pricing logic)
-- Waiter returns with bill
-
-### 4️⃣ Pay Bill
-- Customer clicks "Pay Bill"
-- Waiter moves: TABLE → CASHIER
-- Payment processed
-- Everything resets
-
-## 🔧 Technical Details
-
-### Web Component API
+### In Plain HTML
 
 ```html
-<customer-table
-  .menu="menu"
-  .orderStatus="orderStatus"
-  .bill="bill"
-  @request-menu="handleRequestMenu"
-  @place-order="handlePlaceOrder"
-  @request-bill="handleRequestBill"
-  @pay-bill="handlePayBill"
-/>
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Restaurant Demo</title>
+</head>
+<body>
+  <customer-table id="table"></customer-table>
+
+  <script type="module">
+    // Import the Web Component
+    import './src/web-components/CustomerTable.js';
+
+    const table = document.getElementById('table');
+    
+    // Listen to events (customer intent)
+    table.addEventListener('request-menu', () => {
+      console.log('Customer wants menu');
+      // Provide menu via property
+      table.menu = [
+        { id: 1, name: '🍕 Pizza', price: 12.99 },
+        { id: 2, name: '🍝 Pasta', price: 14.99 }
+      ];
+    });
+
+    table.addEventListener('place-order', (e) => {
+      console.log('Order placed:', e.detail.itemIds);
+      table.orderStatus = 'confirmed';
+    });
+
+    table.addEventListener('request-bill', () => {
+      table.bill = {
+        items: [{ name: '🍕 Pizza', price: 12.99 }],
+        total: 12.99
+      };
+    });
+
+    table.addEventListener('pay-bill', () => {
+      console.log('Payment received');
+      // Reset the table
+      table.menu = null;
+      table.orderStatus = null;
+      table.bill = null;
+    });
+  </script>
+</body>
+</html>
 ```
 
-**Properties (downward communication):**
-- `menu` - Array of menu items
-- `orderStatus` - Order confirmation status
-- `bill` - Bill details with items and total
+### In React
 
-**Events (upward communication):**
+```jsx
+import { useEffect, useRef, useState } from 'react';
+// Register the Web Component
+import './web-components/CustomerTable.js';
+
+function App() {
+  const tableRef = useRef(null);
+
+  // Static menu (does not change)
+  const menu = [
+    { id: 1, name: '🍕 Pizza', price: 12.99 },
+    { id: 2, name: '🍝 Pasta', price: 14.99 }
+  ];
+
+  // React-owned state
+  const [customerMenu, setCustomerMenu] = useState(null);
+  const [orderItemIds, setOrderItemIds] = useState([]);
+  const [orderStatus, setOrderStatus] = useState(null);
+  const [bill, setBill] = useState(null);
+
+  /**
+   * Web Component → React
+   * (listen to custom DOM events)
+   */
+  useEffect(() => {
+    const table = tableRef.current;
+    if (!table) return;
+
+    const onRequestMenu = () => {
+      setCustomerMenu(menu);
+    };
+
+    const onPlaceOrder = (e) => {
+      setOrderItemIds(e.detail.itemIds);
+      setOrderStatus('confirmed');
+    };
+
+    const onRequestBill = () => {
+      const items = menu.filter(item =>
+        orderItemIds.includes(item.id)
+      );
+
+      setBill({
+        items,
+        total: items.reduce((sum, item) => sum + item.price, 0)
+      });
+    };
+
+    const onPayBill = () => {
+      setCustomerMenu(null);
+      setOrderItemIds([]);
+      setOrderStatus(null);
+      setBill(null);
+    };
+
+    table.addEventListener('request-menu', onRequestMenu);
+    table.addEventListener('place-order', onPlaceOrder);
+    table.addEventListener('request-bill', onRequestBill);
+    table.addEventListener('pay-bill', onPayBill);
+
+    return () => {
+      table.removeEventListener('request-menu', onRequestMenu);
+      table.removeEventListener('place-order', onPlaceOrder);
+      table.removeEventListener('request-bill', onRequestBill);
+      table.removeEventListener('pay-bill', onPayBill);
+    };
+  }, [menu, orderItemIds]);
+
+  /**
+   * React → Web Component
+   * (push state via element properties)
+   */
+  useEffect(() => {
+    const table = tableRef.current;
+    if (!table) return;
+
+    table.menu = customerMenu;
+    table.orderStatus = orderStatus;
+    table.bill = bill;
+  }, [customerMenu, orderStatus, bill]);
+
+  return (
+    <div>
+      <h1>Restaurant Demo</h1>
+
+      <customer-table
+        ref={(el) => {
+          tableRef.current = el;
+        }}
+      />
+    </div>
+  );
+}
+
+export default App;
+```
+
+### In Vue 3
+
+```vue
+<script setup>
+import { ref } from 'vue';
+import './web-components/CustomerTable.js';
+
+const menu = [
+  { id: 1, name: '🍕 Pizza', price: 12.99 },
+  { id: 2, name: '🍝 Pasta', price: 14.99 }
+];
+
+const customerMenu = ref(null);
+const orderStatus = ref(null);
+const bill = ref(null);
+
+function handleRequestMenu() {
+  customerMenu.value = menu;
+}
+
+function handlePlaceOrder(event) {
+  console.log('Order:', event.detail.itemIds);
+  orderStatus.value = 'confirmed';
+}
+
+function handleRequestBill() {
+  bill.value = {
+    items: [{ name: '🍕 Pizza', price: 12.99 }],
+    total: 12.99
+  };
+}
+
+function handlePayBill() {
+  customerMenu.value = null;
+  orderStatus.value = null;
+  bill.value = null;
+}
+</script>
+
+<template>
+  <customer-table
+    :menu="customerMenu"
+    :orderStatus="orderStatus"
+    :bill="bill"
+    @request-menu="handleRequestMenu"
+    @place-order="handlePlaceOrder"
+    @request-bill="handleRequestBill"
+    @pay-bill="handlePayBill"
+  />
+</template>
+```
+
+## 🔌 Component API
+
+### Properties (Data In)
+- `menu` - Array of `{ id, name, price }` objects
+- `orderStatus` - String indicating order confirmation
+- `bill` - Object with `{ items, total }`
+
+### Events (Intent Out)
 - `request-menu` - Customer wants to see the menu
-- `place-order` - Customer places an order (includes selected item IDs)
+- `place-order` - Customer places order (includes `detail.itemIds`)
 - `request-bill` - Customer requests the bill
 - `pay-bill` - Customer pays the bill
 
-### Architecture Principles
+## 🎯 Key Concept
 
-✅ **DO:**
-- Vue owns all state and business logic
-- Web Component communicates via events (up) and props (down)
-- Waiter movement is deterministic and sequential
-- All animations complete cleanly
+**Intent goes up ⬆️, Data comes down ⬇️**
 
-❌ **DON'T:**
-- No Vue code inside the Web Component
-- No direct communication between customer and kitchen
-- No concurrent waiter movements
-- No framework assumptions in the Web Component
+The Web Component never directly accesses your app's data. It only:
+1. **Emits events** to express what the customer wants
+2. **Receives properties** with the data your app provides
 
-## 🎨 Design Decisions
-
-### Waiter Animation
-- Only ONE animation at a time (prevents race conditions)
-- Buttons disabled during movement (prevents spam clicks)
-- Smooth CSS transitions (700ms cubic-bezier)
-- Deterministic positions (no randomness)
-
-### Visual Layout
-- Three-column grid (Kitchen | Table | Cashier)
-- Real background images with dark overlays
-- Clear section labels
-- Responsive design for mobile
-
-## 🎓 Teaching Goals
-
-This demo is successful if:
-- ✅ Audience understands the boundary without explanation
-- ✅ Presenter can narrate while animations run
-- ✅ Web Component feels independent
-- ✅ Vue feels authoritative
-- ✅ The metaphor explains itself
-
-## 🛠️ Tech Stack
-
-- **Vite** - Build tool
-- **Vue 3** - Host application (Composition API, `<script setup>`)
-- **Native Web Components** - Custom Elements + Shadow DOM
-- **CSS Transitions** - Animations (no libraries)
-
-## 📝 Notes for Presenters
-
-1. **Start fresh** - Reload the page before each demo
-2. **Click slowly** - Let animations complete
-3. **Explain as you go** - Narrate the waiter's journey
-4. **Highlight the boundary** - Point out events going up, props coming down
-5. **Show independence** - Mention the Web Component has no Vue imports
-
-## 🔍 Code Highlights
-
-### Web Component (Framework-Agnostic)
-```javascript
-// No framework imports!
-class CustomerTable extends HTMLElement {
-  // Communicates via Custom Events
-  requestMenu() {
-    this.dispatchEvent(new CustomEvent('request-menu', {
-      bubbles: true,
-      composed: true
-    }));
-  }
-  
-  // Receives data via properties
-  set menu(value) {
-    this._menu = value;
-    this.render();
-  }
-}
-```
-
-### Vue Host (Owns State)
-```javascript
-// Restaurant owns the menu and prices
-const menu = [
-  { id: 1, name: '🍕 Margherita Pizza', price: 12.99 },
-  // ...
-]
-
-// Restaurant controls waiter movement
-async function moveWaiter(from, to, delay = 500) {
-  isWaiterMoving.value = true
-  waiterPosition.value = { ...POSITIONS[to] }
-  // ... animation logic
-}
-```
+This creates a clean boundary that works with any framework (or no framework).
 
 ## 📄 License
 
-MIT - Feel free to use this demo for your own presentations!
+MIT
 
 ---
 
-Built for VueConf 2026 🎉
+Built for VueVerse Connect 2026 🎉
