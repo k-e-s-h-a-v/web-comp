@@ -9,108 +9,108 @@
  * This component is framework-agnostic and works in plain HTML.
  */
 class CustomerTable extends HTMLElement {
-    constructor() {
-        super();
-        this.attachShadow({ mode: 'open' });
+  constructor() {
+    super();
+    this.attachShadow({ mode: 'open' });
 
-        // Internal state
-        this._menu = null;
-        this._orderStatus = null;
-        this._bill = null;
-        this._selectedItems = new Set();
+    // Internal state
+    this._menu = null;
+    this._orderStatus = null;
+    this._bill = null;
+    this._selectedItems = new Set();
+  }
+
+  // Properties that Vue can set
+  set menu(value) {
+    this._menu = value;
+    this.render();
+  }
+
+  get menu() {
+    return this._menu;
+  }
+
+  set orderStatus(value) {
+    this._orderStatus = value;
+    this.render();
+  }
+
+  get orderStatus() {
+    return this._orderStatus;
+  }
+
+  set bill(value) {
+    this._bill = value;
+    this.render();
+  }
+
+  get bill() {
+    return this._bill;
+  }
+
+  connectedCallback() {
+    this.render();
+  }
+
+  // Event emitters - these send intent to the restaurant
+  requestMenu() {
+    this.dispatchEvent(new CustomEvent('request-menu', {
+      bubbles: true,
+      composed: true
+    }));
+  }
+
+  placeOrder() {
+    this.dispatchEvent(new CustomEvent('place-order', {
+      bubbles: true,
+      composed: true,
+      detail: { itemIds: Array.from(this._selectedItems) }
+    }));
+  }
+
+  requestBill() {
+    this.dispatchEvent(new CustomEvent('request-bill', {
+      bubbles: true,
+      composed: true
+    }));
+  }
+
+  payBill() {
+    this.dispatchEvent(new CustomEvent('pay-bill', {
+      bubbles: true,
+      composed: true
+    }));
+  }
+
+  toggleItem(itemId) {
+    if (this._orderStatus) {
+      // Order already placed, can't change selection
+      return;
     }
 
-    // Properties that Vue can set
-    set menu(value) {
-        this._menu = value;
-        this.render();
+    if (this._selectedItems.has(itemId)) {
+      this._selectedItems.delete(itemId);
+    } else {
+      this._selectedItems.add(itemId);
     }
+    this.render();
+  }
 
-    get menu() {
-        return this._menu;
-    }
+  resetTable() {
+    this._selectedItems.clear();
+    this._menu = null;
+    this._orderStatus = null;
+    this._bill = null;
+    this.render();
+  }
 
-    set orderStatus(value) {
-        this._orderStatus = value;
-        this.render();
-    }
+  render() {
+    const hasMenu = this._menu && this._menu.length > 0;
+    const hasOrder = !!this._orderStatus;
+    const hasBill = !!this._bill;
+    const canOrder = hasMenu && this._selectedItems.size > 0 && !hasOrder;
 
-    get orderStatus() {
-        return this._orderStatus;
-    }
-
-    set bill(value) {
-        this._bill = value;
-        this.render();
-    }
-
-    get bill() {
-        return this._bill;
-    }
-
-    connectedCallback() {
-        this.render();
-    }
-
-    // Event emitters - these send intent to the restaurant
-    requestMenu() {
-        this.dispatchEvent(new CustomEvent('request-menu', {
-            bubbles: true,
-            composed: true
-        }));
-    }
-
-    placeOrder() {
-        this.dispatchEvent(new CustomEvent('place-order', {
-            bubbles: true,
-            composed: true,
-            detail: { itemIds: Array.from(this._selectedItems) }
-        }));
-    }
-
-    requestBill() {
-        this.dispatchEvent(new CustomEvent('request-bill', {
-            bubbles: true,
-            composed: true
-        }));
-    }
-
-    payBill() {
-        this.dispatchEvent(new CustomEvent('pay-bill', {
-            bubbles: true,
-            composed: true
-        }));
-    }
-
-    toggleItem(itemId) {
-        if (this._orderStatus) {
-            // Order already placed, can't change selection
-            return;
-        }
-
-        if (this._selectedItems.has(itemId)) {
-            this._selectedItems.delete(itemId);
-        } else {
-            this._selectedItems.add(itemId);
-        }
-        this.render();
-    }
-
-    resetTable() {
-        this._selectedItems.clear();
-        this._menu = null;
-        this._orderStatus = null;
-        this._bill = null;
-        this.render();
-    }
-
-    render() {
-        const hasMenu = this._menu && this._menu.length > 0;
-        const hasOrder = !!this._orderStatus;
-        const hasBill = !!this._bill;
-        const canOrder = hasMenu && this._selectedItems.size > 0 && !hasOrder;
-
-        this.shadowRoot.innerHTML = `
+    this.shadowRoot.innerHTML = `
       <style>
         :host {
           display: block;
@@ -237,6 +237,12 @@ class CustomerTable extends HTMLElement {
           justify-content: space-between;
           padding: 8px 0;
           border-bottom: 1px solid #dee2e6;
+          color: #2c3e50;
+          font-size: 16px;
+        }
+
+        .bill-item span {
+          color: #2c3e50;
         }
 
         .bill-total {
@@ -247,6 +253,10 @@ class CustomerTable extends HTMLElement {
           font-size: 18px;
           color: #2c3e50;
           margin-top: 8px;
+        }
+
+        .bill-total span {
+          color: #2c3e50;
         }
 
         .actions {
@@ -310,12 +320,12 @@ class CustomerTable extends HTMLElement {
             ${this._bill.items.map(item => `
               <div class="bill-item">
                 <span>${item.name}</span>
-                <span>$${item.price.toFixed(2)}</span>
+                <span>₹${item.price}</span>
               </div>
             `).join('')}
             <div class="bill-total">
               <span>Total</span>
-              <span>$${this._bill.total.toFixed(2)}</span>
+              <span>₹${this._bill.total}</span>
             </div>
           </div>
           <div class="actions">
@@ -325,41 +335,41 @@ class CustomerTable extends HTMLElement {
       </div>
     `;
 
-        // Attach event listeners
-        this.attachEventListeners();
+    // Attach event listeners
+    this.attachEventListeners();
+  }
+
+  attachEventListeners() {
+    const requestMenuBtn = this.shadowRoot.getElementById('request-menu-btn');
+    const placeOrderBtn = this.shadowRoot.getElementById('place-order-btn');
+    const requestBillBtn = this.shadowRoot.getElementById('request-bill-btn');
+    const payBillBtn = this.shadowRoot.getElementById('pay-bill-btn');
+
+    if (requestMenuBtn) {
+      requestMenuBtn.addEventListener('click', () => this.requestMenu());
     }
 
-    attachEventListeners() {
-        const requestMenuBtn = this.shadowRoot.getElementById('request-menu-btn');
-        const placeOrderBtn = this.shadowRoot.getElementById('place-order-btn');
-        const requestBillBtn = this.shadowRoot.getElementById('request-bill-btn');
-        const payBillBtn = this.shadowRoot.getElementById('pay-bill-btn');
-
-        if (requestMenuBtn) {
-            requestMenuBtn.addEventListener('click', () => this.requestMenu());
-        }
-
-        if (placeOrderBtn) {
-            placeOrderBtn.addEventListener('click', () => this.placeOrder());
-        }
-
-        if (requestBillBtn) {
-            requestBillBtn.addEventListener('click', () => this.requestBill());
-        }
-
-        if (payBillBtn) {
-            payBillBtn.addEventListener('click', () => this.payBill());
-        }
-
-        // Checkbox listeners
-        const checkboxes = this.shadowRoot.querySelectorAll('input[type="checkbox"]:not([disabled])');
-        checkboxes.forEach(checkbox => {
-            checkbox.addEventListener('change', (e) => {
-                const itemId = parseInt(e.target.dataset.itemId);
-                this.toggleItem(itemId);
-            });
-        });
+    if (placeOrderBtn) {
+      placeOrderBtn.addEventListener('click', () => this.placeOrder());
     }
+
+    if (requestBillBtn) {
+      requestBillBtn.addEventListener('click', () => this.requestBill());
+    }
+
+    if (payBillBtn) {
+      payBillBtn.addEventListener('click', () => this.payBill());
+    }
+
+    // Checkbox listeners
+    const checkboxes = this.shadowRoot.querySelectorAll('input[type="checkbox"]:not([disabled])');
+    checkboxes.forEach(checkbox => {
+      checkbox.addEventListener('change', (e) => {
+        const itemId = parseInt(e.target.dataset.itemId);
+        this.toggleItem(itemId);
+      });
+    });
+  }
 }
 
 // Register the custom element

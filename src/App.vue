@@ -6,11 +6,11 @@ import cashierImg from './assets/cashier.jpg'
 
 // Restaurant data - owned by Vue
 const menu = [
-  { id: 1, name: '🍕 Margherita Pizza', price: 12.99 },
-  { id: 2, name: '🍝 Spaghetti Carbonara', price: 14.99 },
-  { id: 3, name: '🥗 Caesar Salad', price: 8.99 },
-  { id: 4, name: '🍔 Cheeseburger', price: 11.99 },
-  { id: 5, name: '🍰 Tiramisu', price: 6.99 }
+  { id: 1, name: '🍕 Margherita Pizza', price: 1099 },
+  { id: 2, name: '🍝 Spaghetti Carbonara', price: 1249 },
+  { id: 3, name: '🥗 Caesar Salad', price: 749 },
+  { id: 4, name: '🍔 Cheeseburger', price: 999 },
+  { id: 5, name: '🍰 Tiramisu', price: 599 }
 ]
 
 // Waiter positions (in percentages for responsiveness)
@@ -116,7 +116,7 @@ function resetRestaurant() {
         <h3>Menu</h3>
         <ul class="menu-display">
           <li v-for="item in menu" :key="item.id">
-            {{ item.name }} - ${{ item.price.toFixed(2) }}
+            {{ item.name }} - ₹{{ item.price }}
           </li>
         </ul>
       </div>
@@ -152,7 +152,7 @@ function resetRestaurant() {
             {{ item.name }}
           </div>
           <div class="order-total">
-            Total: ${{ currentOrder.reduce((sum, item) => sum + item.price, 0).toFixed(2) }}
+            Total: ₹{{ currentOrder.reduce((sum, item) => sum + item.price, 0) }}
           </div>
         </div>
         <div v-else class="empty-state">
