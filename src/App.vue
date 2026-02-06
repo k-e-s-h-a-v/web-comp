@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import kitchenImg from './assets/kitchen.jpg'
 import tableImg from './assets/table.jpg'
 import cashierImg from './assets/cashier.jpg'
@@ -13,20 +13,42 @@ const menu = [
   { id: 5, name: '🍰 Tiramisu', price: 599 }
 ]
 
-// Waiter positions (in percentages for responsiveness)
-const POSITIONS = {
+// Responsive waiter positions
+const isNarrowScreen = ref(false)
+
+// Waiter positions - horizontal for wide screens, vertical for narrow
+const POSITIONS_HORIZONTAL = {
   TABLE: { x: 50, y: 50 },
   KITCHEN: { x: 15, y: 50 },
   CASHIER: { x: 85, y: 50 }
 }
 
+const POSITIONS_VERTICAL = {
+  TABLE: { x: 50, y: 50 },
+  KITCHEN: { x: 50, y: 20 },
+  CASHIER: { x: 50, y: 80 }
+}
+
+const POSITIONS = computed(() => 
+  isNarrowScreen.value ? POSITIONS_VERTICAL : POSITIONS_HORIZONTAL
+)
+
 // State
-const waiterPosition = ref({ ...POSITIONS.TABLE })
+const waiterPosition = ref({ x: 50, y: 50 })
 const isWaiterMoving = ref(false)
 const customerMenu = ref(null)
 const orderStatus = ref(null)
 const currentOrder = ref(null)
 const billData = ref(null)
+
+// Check screen size
+function checkScreenSize() {
+  isNarrowScreen.value = window.innerWidth <= 1024
+  // Update waiter position when screen size changes (if not moving)
+  if (!isWaiterMoving.value) {
+    waiterPosition.value = { ...POSITIONS.value.TABLE }
+  }
+}
 
 // Computed
 const waiterStyle = computed(() => ({
@@ -41,12 +63,12 @@ async function moveWaiter(from, to, delay = 500) {
   if (isWaiterMoving.value) return // Prevent concurrent movements
   
   isWaiterMoving.value = true
-  waiterPosition.value = { ...POSITIONS[to] }
+  waiterPosition.value = { ...POSITIONS.value[to] }
   
   await new Promise(resolve => setTimeout(resolve, 700)) // Animation duration
   await new Promise(resolve => setTimeout(resolve, delay)) // Simulated work
   
-  waiterPosition.value = { ...POSITIONS[from] }
+  waiterPosition.value = { ...POSITIONS.value[from] }
   await new Promise(resolve => setTimeout(resolve, 700)) // Return animation
   
   isWaiterMoving.value = false
@@ -101,8 +123,18 @@ function resetRestaurant() {
   orderStatus.value = null
   currentOrder.value = null
   billData.value = null
-  waiterPosition.value = { ...POSITIONS.TABLE }
+  waiterPosition.value = { ...POSITIONS.value.TABLE }
 }
+
+// Lifecycle hooks
+onMounted(() => {
+  checkScreenSize()
+  window.addEventListener('resize', checkScreenSize)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', checkScreenSize)
+})
 </script>
 
 <template>
@@ -175,7 +207,8 @@ function resetRestaurant() {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
   position: relative;
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
 
@@ -184,6 +217,7 @@ function resetRestaurant() {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  min-width: 350px;
 }
 
 .background-image {
@@ -298,14 +332,35 @@ function resetRestaurant() {
 }
 
 /* Responsive adjustments */
+/* For tablets and medium screens - vertical stacking */
 @media (max-width: 1024px) {
   .restaurant {
     grid-template-columns: 1fr;
     grid-template-rows: auto auto auto;
+    overflow-x: hidden;
+    overflow-y: auto;
   }
 
   .section {
     min-height: 400px;
+    min-width: unset;
+  }
+}
+
+/* For very narrow screens - ensure scrollability */
+@media (max-width: 768px) {
+  .section {
+    min-height: 500px;
+  }
+
+  .label {
+    font-size: 16px;
+    padding: 12px;
+  }
+
+  .content {
+    padding: 16px;
   }
 }
 </style>
+
