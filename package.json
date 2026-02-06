@@ -1,0 +1,20 @@
+{
+  "name": "web-comp",
+  "version": "1.0.0",
+  "description": "🍽️ VUE + WEB COMPONENT DEMO — CODING AGENT PROMPT ROLE",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@vitejs/plugin-vue": "^6.0.4",
+    "vite": "^7.3.1",
+    "vue": "^3.5.27"
+  }
+}
